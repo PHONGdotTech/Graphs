@@ -111,7 +111,22 @@ class Graph:
         starting_vertex to destination_vertex in
         depth-first order.
         """
-        pass  # TODO
+        s = Stack()
+        s.push(starting_vertex)
+        path = []
+        visited = set()
+
+        while s.size() > 0:
+            popped = s.pop()
+            if popped not in visited:
+                path.append(popped)
+                visited.add(popped)
+                if popped == destination_vertex:
+                    return path
+                for neighbor in self.get_neighbors(popped):
+                    s.push(neighbor)
+
+        return None
 
     def dfs_recursive(self, starting_vertex, destination_vertex):
         """
@@ -121,7 +136,35 @@ class Graph:
 
         This should be done using recursion.
         """
-        pass  # TODO
+        visited = set()
+        path = [starting_vertex]
+        final_path = [starting_vertex]
+
+        def dft_recursive_helper(vertex):
+            if vertex not in visited:
+                visited.add(vertex)
+                if vertex == destination_vertex:
+                    path.append("marker")
+                    return
+                for neighbor in self.get_neighbors(vertex):
+                    dft_recursive_helper(neighbor)
+                    path.append(neighbor)
+                    # print(path)
+
+        dft_recursive_helper(starting_vertex)
+        # print(path)
+
+        marker_index = path.index("marker")
+        destination_vertex_index = path.index(destination_vertex)
+
+        for vertex in reversed(path[marker_index+1:]):
+            final_path.append(vertex)
+
+        # final_path.append(destination_vertex_index)
+
+        return final_path
+        
+
 
 if __name__ == '__main__':
     graph = Graph()  # Instantiate your graph
@@ -143,6 +186,30 @@ if __name__ == '__main__':
     graph.add_edge(3, 5)
     graph.add_edge(2, 3)
     graph.add_edge(4, 6)
+
+    # graph.add_vertex(1)
+    # graph.add_vertex(2)
+    # graph.add_vertex(3)
+    # graph.add_vertex(4)
+    # graph.add_vertex(5)
+    # graph.add_vertex(6)
+    # graph.add_vertex(7)
+    # graph.add_vertex(8)
+    # graph.add_vertex(9)
+    # graph.add_vertex(10)
+    # graph.add_edge(1, 2)
+    # graph.add_edge(2, 3)
+    # graph.add_edge(3, 4)
+    # graph.add_edge(4, 5)
+    # graph.add_edge(5, 6)
+    # graph.add_edge(6, 7)
+    # graph.add_edge(7, 8)
+    # graph.add_edge(7, 2)
+    # graph.add_edge(7, 3)
+    # graph.add_edge(7, 8)
+    # graph.add_edge(8, 9)
+    # graph.add_edge(9, 10)
+
 
     '''
     Should print:
@@ -181,7 +248,7 @@ if __name__ == '__main__':
     Valid BFS path:
         [1, 2, 4, 6]
     '''
-    print(graph.bfs(1, 6))
+    # print(graph.bfs(1, 6))
 
     '''
     Valid DFS paths:
@@ -190,3 +257,5 @@ if __name__ == '__main__':
     '''
     # print(graph.dfs(1, 6))
     # print(graph.dfs_recursive(1, 6))
+
+    print(graph.dfs_recursive(1, 6))
