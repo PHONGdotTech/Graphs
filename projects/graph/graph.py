@@ -148,6 +148,7 @@ class Graph:
                     return new_path
                 for neighbor in self.get_neighbors(vertex):
                     final_path = dft_recursive_helper(new_path, neighbor)
+                    # all recursive calls return None except when vertex == destination_vertex
                     if final_path is not None:
                         return final_path
 
