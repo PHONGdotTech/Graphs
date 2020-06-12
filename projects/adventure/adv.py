@@ -1,12 +1,11 @@
 from room import Room
 from player import Player
 from world import World
-
-import sys
-sys.setrecursionlimit(5000)
-
-import random
 from ast import literal_eval
+
+import sys, queue, random
+
+sys.setrecursionlimit(5000)
 
 # Load world
 world = World()
@@ -32,28 +31,18 @@ player = Player(world.starting_room)
 # traversal_path = ['n', 'n']
 traversal_path = []
 
-class Stack():
-    def __init__(self):
-        self.stack = []
-    def push(self, value):
-        self.stack.append(value)
-    def pop(self):
-        if self.size() > 0:
-            return self.stack.pop()
-        else:
-            return None
-    def size(self):
-        return len(self.stack)
-
 s = []
 visited = {}
+popped = []
 
 def traverse_map(prev_room, current_room):
+
     # print()
     # print(f"You are here: {player.current_room.id}")
     # print(f"You think you are here: {current_room}")
     # print(f"You think you came from: {prev_room}")
     # print(f"Possible rooms are: {player.current_room.get_exits()}")
+    # print(f"traversal path so far: {traversal_path}")
     if current_room not in visited:
         exits = player.current_room.get_exits()
         visited[current_room] = {}
@@ -99,6 +88,7 @@ def traverse_map(prev_room, current_room):
     # print(f"this is the stack: {s}")
     if len(s) > 0:
         info_for_next_room = s.pop()
+        popped.append(info_for_next_room)
         current_room_info = info_for_next_room[0]
         next_room_info = info_for_next_room[1]
         direction_info = info_for_next_room[2]
@@ -109,50 +99,101 @@ def traverse_map(prev_room, current_room):
             player.travel(direction_info)
             traverse_map(current_room_info, next_room_info)
         else:
-            # print("unknown not available, gotta go back")
-            last_direction = -1
-            back_tracking = []
-            # print(f"you are here: {current_room}, where you need to be {current_room_info}")
-            while (current_room_info != player.current_room.id):
-                # print("enter while loop to go back")
-                if len(traversal_path) > 0:
-                    from_direction = traversal_path[last_direction]
-                else:
-                    from_direction = None
+            # print("unknown not available, from here do a breadth first search")
 
-                next_direction = ""
+            def bfs():
+                # print(f"from direction is: {from_direction}")
                 if from_direction == 'n':
-                    next_direction = "s"
+                    goto_direction = 's'
                 elif from_direction == 'e':
-                    next_direction = "w"
-                elif from_direction == 'w':
-                    next_direction = "e"
+                    goto_direction = 'w'
                 elif from_direction == 's':
-                    next_direction = "n"
+                    goto_direction = 'n'
+                elif from_direction == 'w':
+                    goto_direction = 'e'
 
-                back_tracking.append(next_direction)
-                last_direction -= 1
-                # print(f"You travel {next_direction} because all rooms are explored and you're at a dead end.")
-                player.travel(next_direction)
-                # print(f"you are now here: {player.current_room.id}")
+                q = queue.Queue()
+                # print(f"goto direction is: {goto_direction}")
+                q.put([goto_direction])
 
-            # print(f"current traversal path: {traversal_path}")
-            # print(f"back_tracking is {back_tracking}")
-            for direction in back_tracking:
-                traversal_path.append(direction)
-            # print(f"traversal path after adding baCktracking: {traversal_path}")
-            # print(f"info: current_room_info {current_room_info}, next room info: {next_room_info}, actual current room {player.current_room.id}")
-            player.travel(direction_info)
-            traversal_path.append(direction_info)
-            traverse_map(current_room_info, next_room_info)
-            
+                while q.qsize() > 0 and len(visited) < len(room_graph):
+                    path = q.get()
+                    # print(f"path is {path}")
+                    current_room = player.current_room.id
+                    for direction in path:
+                        # print(f"currently here {player.current_room.id}")
+                        # print(f"traveling this direction {direction}")
+                        player.travel(direction)
+                        # print(f"arrived here after moving {player.current_room.id}")
+
+                    if path[-1] == "n":
+                        player.travel('s')
+                        current_room = player.current_room.id
+                        player.travel('n')
+                    elif path[-1] == "e":
+                        player.travel('w')
+                        current_room = player.current_room.id
+                        player.travel('e')
+                    elif path[-1] == "s":
+                        player.travel('n')
+                        current_room = player.current_room.id
+                        player.travel('s')
+                    elif path[-1] == "w":
+                        player.travel('e')
+                        current_room = player.current_room.id
+                        player.travel('w')
+
+                    if player.current_room.id not in visited:
+                        # print(f"found unvisited room. recursion here")
+                        for direction in path:
+                            traversal_path.append(direction)
+                        traverse_map(current_room, player.current_room.id)
+                    else:
+                        # print(f"this room {player.current_room.id} is in visited already")
+                        for direction in visited[player.current_room.id]:
+                            if direction == "?":
+                                # print(f"returning the path {path}")
+                                return path
+                        for direction in visited[player.current_room.id]:
+                            direction_from = ""
+                            if path[-1] == "n":
+                                direction_from = "s"
+                            elif path[-1] == "e":
+                                direction_from = "w"
+                            elif path[-1] == "w":
+                                direction_from = "e"
+                            elif path[-1] == "s":
+                                direction_from = "n"
+
+                            if direction_from != direction:
+                                new_path = list(path)
+                                new_path.append(direction)
+                                # print(f"putting this path in the queue: {new_path}")
+                                q.put(new_path)
+
+                        # print(f"backtravelling this path {path}")
+                        # print(f"you are here {player.current_room.id}")
+                        reverse_path = list(path)
+                        reverse_path.reverse()
+                        for direction in reverse_path:
+                            if direction == "n":
+                                # print(f"travelling s")
+                                player.travel('s')
+                            elif direction == "e":
+                                # print(f"travelling w")
+                                player.travel('w')
+                            elif direction == "s":
+                                # print(f"travelling n")
+                                player.travel('n')
+                            elif direction == "w":
+                                # print(f"travelling e")
+                                player.travel('e')
+                        # print(f"you are now here {player.current_room.id}")
+            bfs()
             
         
 traverse_map(None, player.current_room.id)
-# print(f"Stack: {s}")
-# print(f"visited: {visited}")
-# print(f"traversal path {traversal_path}")
-# print(f"current room {player.current_room.id}")
+
 
 """
 enter a room
